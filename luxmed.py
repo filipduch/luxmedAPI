@@ -16,11 +16,12 @@ X_API_LANG = "pl"
 class Luxmed:
 
     def __init__(self, username, password):
-        self.userHash = None
+        self.userHash = None  # GUID will be obtained after successful login
 
-    def sendRequest(self, action, data):
+    def _sendRequest(self, action, data):
+        """ sends request to server """
         data = urllib.urlencode(data)
-        headers = self.getHeaders()
+        headers = self._getHeaders()
 
         conn = httplib.HTTPSConnection(API_HOST)
         conn.request("POST", API_BASE_URL + action, data, headers)
@@ -34,5 +35,29 @@ class Luxmed:
 
         return reply
 
-    def getHeaders(self):
-        return {}
+    def _getHeaders(self):
+        """ creates necessary headers every request must include """
+        timestamp = str(int(time.time())) + "000"
+        string_to_hash = API_SECRET + "::" + X_API_VERSION + "::" + X_API_CLIENT + "::" + timestamp
+
+        # add another param if user is already logged-in
+        if self.userHash is not None:
+            string_to_hash = string_to_hash + "::" + self.userHash
+
+        md5 = hashlib.md5()
+        md5.update(string_to_hash)
+        api_signature = md5.hexdigest()
+
+        headers = {
+            "x-api-signature": api_signature,
+            "x-api-timestamp": timestamp,
+            "x-api-client-identifier": X_API_CLIENT,
+            "x-api-version": X_API_VERSION,
+            "x-api-lang": X_API_LANG,
+            "Content-type": "application/x-www-form-urlencoded",
+            "Connection": "Keep-Alive",
+            "User-Agent": "Apache-HttpClient/UNAVAILABLE (java 1.4)"
+        }
+
+        return headers
+

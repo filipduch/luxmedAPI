@@ -23,6 +23,8 @@ class Luxmed:
         response = self._sendRequest("reservationFilter", {"isFromReservation": "true"})
         self._cities = response["Cities"]
         self._languages = response["Languages"]
+        self._services = list()
+        self._clinics = list()
 
     def _sendRequest(self, action, data):
         """ sends request to server """
@@ -88,3 +90,22 @@ class Luxmed:
         """ returns list of languages and their id's """
         return self._languages
 
+    def selectCityById(self, city_id):
+        """ gets services and clinics """
+        data = {
+            "isFromReservation": "true",
+            "cityId": city_id
+        }
+
+        response = self._sendRequest("reservationFilter", data)
+        self._clinics = response["Clinics"]
+        self._services = response["Services"]
+
+    def selectCityByName(self, city_name):
+        """ finds cityId by city name """
+        for city in self._cities:
+            if city_name == city["Name"]:
+                self.selectCityById(city["CityId"])
+                return
+
+        raise Exception("City '%s' not found!" % city_name)

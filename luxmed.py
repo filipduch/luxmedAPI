@@ -109,3 +109,12 @@ class Luxmed:
                 return
 
         raise Exception("City '%s' not found!" % city_name)
+
+    def getClinics(self):
+        """ returns list of available clinics """
+        return self._clinics
+
+    def getServices(self):
+        """ returns list of available services """
+        return self._services
+    

@@ -16,8 +16,13 @@ X_API_LANG = "pl"
 class Luxmed:
 
     def __init__(self, username, password):
-        self.userHash = None  # GUID will be obtained after successful login
+        self._userHash = None  # GUID will be obtained after successful login
         self._login(username, password)
+
+        # get cities and languages
+        response = self._sendRequest("reservationFilter", {"isFromReservation": "true"})
+        self._cities = response["Cities"]
+        self._languages = response["Languages"]
 
     def _sendRequest(self, action, data):
         """ sends request to server """
@@ -42,8 +47,8 @@ class Luxmed:
         string_to_hash = API_SECRET + "::" + X_API_VERSION + "::" + X_API_CLIENT + "::" + timestamp
 
         # add userHash param if user is already logged-in
-        if self.userHash is not None:
-            string_to_hash = string_to_hash + "::" + self.userHash
+        if self._userHash is not None:
+            string_to_hash = string_to_hash + "::" + self._userHash
 
         md5 = hashlib.md5()
         md5.update(string_to_hash)
@@ -60,8 +65,8 @@ class Luxmed:
             "User-Agent": "Apache-HttpClient/UNAVAILABLE (java 1.4)"
         }
 
-        if self.userHash is not None:
-            headers["x-api-user-hash"] = self.userHash
+        if self._userHash is not None:
+            headers["x-api-user-hash"] = self._userHash
 
         return headers
 
@@ -73,6 +78,13 @@ class Luxmed:
         }
 
         response = self._sendRequest("login", data)
-        self.userHash = response["UserHash"]
+        self._userHash = response["UserHash"]
 
+    def getCities(self):
+        """ returns list of cities and their id's """
+        return self._cities
+
+    def getLanguages(self):
+        """ returns list of languages and their id's """
+        return self._languages
 

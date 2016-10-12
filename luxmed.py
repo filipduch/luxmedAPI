@@ -17,6 +17,7 @@ class Luxmed:
 
     def __init__(self, username, password):
         self.userHash = None  # GUID will be obtained after successful login
+        self._login(username, password)
 
     def _sendRequest(self, action, data):
         """ sends request to server """
@@ -40,7 +41,7 @@ class Luxmed:
         timestamp = str(int(time.time())) + "000"
         string_to_hash = API_SECRET + "::" + X_API_VERSION + "::" + X_API_CLIENT + "::" + timestamp
 
-        # add another param if user is already logged-in
+        # add userHash param if user is already logged-in
         if self.userHash is not None:
             string_to_hash = string_to_hash + "::" + self.userHash
 
@@ -60,4 +61,15 @@ class Luxmed:
         }
 
         return headers
+
+    def _login(self, username, password):
+        """ performs user login """
+        data = {
+            "login": username,
+            "password": password
+        }
+
+        response = self._sendRequest("login", data)
+        self.userHash = response["UserHash"]
+
 

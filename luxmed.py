@@ -60,6 +60,9 @@ class Luxmed:
             "User-Agent": "Apache-HttpClient/UNAVAILABLE (java 1.4)"
         }
 
+        if self.userHash is not None:
+            headers["x-api-user-hash"] = self.userHash
+
         return headers
 
     def _login(self, username, password):

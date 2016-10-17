@@ -25,6 +25,7 @@ class Luxmed:
         self._languages = response["Languages"]
         self._services = list()
         self._clinics = list()
+        self._cityId = None
 
     def _sendRequest(self, action, data):
         """ sends request to server """
@@ -36,7 +37,8 @@ class Luxmed:
         response = conn.getresponse()
 
         if response.status != httplib.OK:
-            raise Exception(str(response.status) + " " + response.reason)
+            conn.close()
+            raise Exception(str(response.status) + " " + response.reason, response.status)
 
         reply = json.loads(response.read())
         conn.close()
@@ -44,7 +46,7 @@ class Luxmed:
         return reply
 
     def _getHeaders(self):
-        """ creates necessary headers every request must include """
+        """ creates necessary headers which every request must include """
         timestamp = str(int(time.time())) + "000"
         string_to_hash = API_SECRET + "::" + X_API_VERSION + "::" + X_API_CLIENT + "::" + timestamp
 
@@ -84,10 +86,12 @@ class Luxmed:
 
     def getCities(self):
         """ returns list of cities and their id's """
+        """ keys: CityId, Name, Type """
         return self._cities
 
     def getLanguages(self):
         """ returns list of languages and their id's """
+        """ keys: LanguageId, Name, Type """
         return self._languages
 
     def selectCityById(self, city_id):
@@ -100,6 +104,7 @@ class Luxmed:
         response = self._sendRequest("reservationFilter", data)
         self._clinics = response["Clinics"]
         self._services = response["Services"]
+        self._cityId = city_id
 
     def selectCityByName(self, city_name):
         """ finds cityId by city name """
@@ -112,9 +117,34 @@ class Luxmed:
 
     def getClinics(self):
         """ returns list of available clinics """
+        """ keys: ClinicId, Name, Type and others but empty """
         return self._clinics
 
     def getServices(self):
         """ returns list of available services """
+        """ keys: ServiceId, Name, Type """
         return self._services
-    
+
+    def findVisits(self, clinic_id, service_id, date_from, date_to):
+        """ finds visits """
+        """ date_from and date_to must be formatted: YYYY-mm-dd """
+        if self._cityId is None:
+            raise Exception("Error: select city first, use selectCityById or selectCityByName")
+
+        data = {
+            "cityId": self._cityId,
+            "clinicId": clinic_id,
+            "serviceId": service_id,
+            "termDateFrom": date_from,
+            "termDateTo": date_to,
+            "showOnlyFree": "true",
+            "ResultOnPage": 100,  # max number of results
+            "page": 1
+        }
+
+        try:
+            visits = self._sendRequest("visits", data)
+        except Exception as ex:
+            pass
+            # todo proper exception handling, 'visits' return 404 'no data found' when no visits found
+        return visits

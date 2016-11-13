@@ -20,9 +20,10 @@ class Luxmed:
         self._login(username, password)
 
         # get cities and languages
-        response = self._sendRequest("reservationFilter", {"isFromReservation": "true"})
-        self._cities = response["Cities"]
-        self._languages = response["Languages"]
+        response, request_data = self._sendRequest("reservationFilter", {"isFromReservation": "true"})
+        self._validateResponse(response)
+        self._cities = request_data["Cities"]
+        self._languages = request_data["Languages"]
         self._services = list()
         self._clinics = list()
         self._cityId = None
@@ -37,13 +38,13 @@ class Luxmed:
         response = conn.getresponse()
 
         if response.status != httplib.OK:
-            conn.close()
-            raise Exception(str(response.status) + " " + response.reason, response.status)
+            request_data = None
+        else:
+            request_data = json.loads(response.read())
 
-        reply = json.loads(response.read())
         conn.close()
 
-        return reply
+        return response, request_data
 
     def _getHeaders(self):
         """ creates necessary headers which every request must include """
@@ -74,6 +75,10 @@ class Luxmed:
 
         return headers
 
+    def _validateResponse(self, response):
+        if response.status != httplib.OK:
+            raise Exception(str(response.status) + " " + response.reason)
+
     def _login(self, username, password):
         """ performs user login """
         data = {
@@ -81,8 +86,9 @@ class Luxmed:
             "password": password
         }
 
-        response = self._sendRequest("login", data)
-        self._userHash = response["UserHash"]
+        response, request_data = self._sendRequest("login", data)
+        self._validateResponse(response)
+        self._userHash = request_data["UserHash"]
 
     def getCities(self):
         """ returns list of cities and their id's """
@@ -101,9 +107,10 @@ class Luxmed:
             "cityId": city_id
         }
 
-        response = self._sendRequest("reservationFilter", data)
-        self._clinics = response["Clinics"]
-        self._services = response["Services"]
+        response, request_data = self._sendRequest("reservationFilter", data)
+        self._validateResponse(response)
+        self._clinics = request_data["Clinics"]
+        self._services = request_data["Services"]
         self._cityId = city_id
 
     def selectCityByName(self, city_name):
@@ -142,9 +149,14 @@ class Luxmed:
             "page": 1
         }
 
-        try:
-            visits = self._sendRequest("visits", data)
-        except Exception as ex:
-            pass
-            # todo proper exception handling, 'visits' return 404 'no data found' when no visits found
-        return visits
+        response, request_data = self._sendRequest("visits", data)
+
+        if response.status == httplib.OK:
+            return request_data
+
+        elif response.status == httplib.NOT_FOUND:
+            return []
+
+        else:
+            # throw an exception
+            self._validateResponse(response)
